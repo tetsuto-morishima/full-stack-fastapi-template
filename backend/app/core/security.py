@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import jwt
+import requests
 from passlib.context import CryptContext
 
 from app.core.config import settings
@@ -17,6 +18,18 @@ def create_access_token(subject: str | Any, expires_delta: timedelta) -> str:
     to_encode = {"exp": expire, "sub": str(subject)}
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+def verify_google_token(id_token: str) -> dict | None:
+    """GoogleのIDトークンを検証し、ユーザー情報（sub, email, name等）返却"""
+    try:
+        response = requests.get(
+            "https://oauth2.googleapis.com/tokeninfo", params={"id_token": id_token}
+        )
+        if response.status_code == 200:
+            return response.json()
+    except Exception:
+        pass
+    return None
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

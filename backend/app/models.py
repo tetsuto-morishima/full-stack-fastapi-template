@@ -7,9 +7,12 @@ from sqlmodel import Field, Relationship, SQLModel
 # Shared properties
 class UserBase(SQLModel):
     email: EmailStr = Field(unique=True, index=True, max_length=255)
+    google_id: str | None = Field(default=None, max_length=128)  # 追加, SSO用
     is_active: bool = True
     is_superuser: bool = False
     full_name: str | None = Field(default=None, max_length=255)
+    google_id: str | None = Field(default=None, unique=True, index=True, max_length=128)  # 追加, SSO用
+
 
 
 # Properties to receive via API on creation
@@ -27,6 +30,8 @@ class UserRegister(SQLModel):
 class UserUpdate(UserBase):
     email: EmailStr | None = Field(default=None, max_length=255)  # type: ignore
     password: str | None = Field(default=None, min_length=8, max_length=40)
+    google_id: str | None = Field(default=None, max_length=128)  # 追加, SSO用
+
 
 
 class UserUpdateMe(SQLModel):

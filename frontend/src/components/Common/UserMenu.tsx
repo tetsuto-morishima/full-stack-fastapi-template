@@ -8,6 +8,8 @@ import { MenuContent, MenuItem, MenuRoot, MenuTrigger } from "../ui/menu"
 
 const UserMenu = () => {
   const { user, logout } = useAuth()
+  // Googleでログインした場合はアイコン/名前拡張
+  const displayName = user?.full_name || user?.email || "User";
 
   const handleLogout = async () => {
     logout()
@@ -21,7 +23,7 @@ const UserMenu = () => {
           <MenuTrigger asChild p={2}>
             <Button data-testid="user-menu" variant="solid" maxW="sm" truncate>
               <FaUserAstronaut fontSize="18" />
-              <Text>{user?.full_name || "User"}</Text>
+              <Text>{displayName}</Text>
             </Button>
           </MenuTrigger>
 

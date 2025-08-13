@@ -40,7 +40,7 @@ class Settings(BaseSettings):
 
     BACKEND_CORS_ORIGINS: Annotated[
         list[AnyUrl] | str, BeforeValidator(parse_cors)
-    ] = []
+    ] = ["http://localhost:5173"]
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -94,6 +94,11 @@ class Settings(BaseSettings):
     EMAIL_TEST_USER: EmailStr = "test@example.com"
     FIRST_SUPERUSER: EmailStr
     FIRST_SUPERUSER_PASSWORD: str
+    
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/login/google/callback"  # 仮設定
+
 
     def _check_default_secret(self, var_name: str, value: str | None) -> None:
         if value == "changethis":

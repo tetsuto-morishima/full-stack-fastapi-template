@@ -17,6 +17,11 @@ export const isString = (value: unknown): value is string => {
   return typeof value === "string"
 }
 
+export const googleSSOLogin = async (code: string): Promise<{ access_token: string }> => {
+  // Google認可コードをバックエンドに送り、トークン受領
+  const res = await axios.post("/api/v1/login/google/callback", { code })
+  return res.data
+}
 export const isStringWithValue = (value: unknown): value is string => {
   return isString(value) && value !== ""
 }

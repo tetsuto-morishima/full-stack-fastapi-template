@@ -42,14 +42,14 @@ const useAuth = () => {
   })
 
   const login = async (data: AccessToken) => {
-    const response = await LoginService.loginAccessToken({
-      formData: data,
-    })
-    localStorage.setItem("access_token", response.access_token)
-  }
-
-  const loginMutation = useMutation({
-    mutationFn: login,
+    if ("googleSSOToken" in data && data.googleSSOToken) {
+      localStorage.setItem("access_token", data.googleSSOToken)
+      return
+    }
+  const response = await LoginService.loginAccessToken({
+    formData: data as AccessToken,
+  })
+  localStorage.setItem("access_token", response.access_token)
     onSuccess: () => {
       navigate({ to: "/" })
     },
