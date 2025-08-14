@@ -1,9 +1,28 @@
-import { Container, Image, Input, Text } from "@chakra-ui/react"
+        <VStack w="100%" spacing={4} mt={2}>
+          <Divider />
+          <GoogleLoginButton onClick={handleGoogleLogin} />
+        </VStack>
+    const authUrl = await getGoogleAuthUrl()
+    if (authUrl) {
+      window.location.href = authUrl
+    }
+  }
+  useEffect(() => {
+    const code = search.code
+    if (code) {
+      loginWithGoogleCode(code)
+    }
+  }, [search.code, loginWithGoogleCode])
+import { Container, Image, Input, Text, VStack, Divider } from "@chakra-ui/react"
 import {
   Link as RouterLink,
   createFileRoute,
   redirect,
 } from "@tanstack/react-router"
+import { useEffect } from "react"
+
+  useSearch,
+
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { FiLock, FiMail } from "react-icons/fi"
 
@@ -11,6 +30,8 @@ import type { Body_login_login_access_token as AccessToken } from "@/client"
 import { Button } from "@/components/ui/button"
 import { Field } from "@/components/ui/field"
 import { InputGroup } from "@/components/ui/input-group"
+import GoogleLoginButton from "@/components/ui/GoogleLoginButton"
+
 import { PasswordInput } from "@/components/ui/password-input"
 import useAuth, { isLoggedIn } from "@/hooks/useAuth"
 import Logo from "/assets/images/fastapi-logo.svg"
@@ -29,6 +50,9 @@ export const Route = createFileRoute("/login")({
 
 function Login() {
   const { loginMutation, error, resetError } = useAuth()
+  const { loginMutation, error, resetError, getGoogleAuthUrl, loginWithGoogleCode } = useAuth()
+  const search = useSearch({ from: "/login" })
+
   const {
     register,
     handleSubmit,
