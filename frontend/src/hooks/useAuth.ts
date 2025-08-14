@@ -10,6 +10,8 @@ import {
   type UserRegister,
   UsersService,
 } from "@/client"
+import { fetchGoogleAuthUrl, googleLogin } from "@/client/GoogleSSOService"
+
 import { handleError } from "@/utils"
 
 const isLoggedIn = () => {
@@ -42,14 +44,55 @@ const useAuth = () => {
   })
 
   const login = async (data: AccessToken) => {
-    if ("googleSSOToken" in data && data.googleSSOToken) {
-      localStorage.setItem("access_token", data.googleSSOToken)
-      return
-    }
-  const response = await LoginService.loginAccessToken({
-    formData: data as AccessToken,
+  const loginMutation = useMutation({
+    mutationFn: async (data: AccessToken) => {
+      // Google SSOトークンがある場合
+      if ("googleSSOToken" in data && data.googleSSOToken) {
+        const response = await googleLogin(data.googleSSOToken)
+        localStorage.setItem("access_token", response.access_token)
+        return response
+      }
+      
+      // 通常のログイン
+      const response = await LoginService.loginAccessToken({
+        formData: data as AccessToken,
+      })
+      localStorage.setItem("access_token", response.access_token)
+      return response
+    },
+    onSuccess: () => {
+      navigate({ to: "/" })
+    },
+    onError: (err: ApiError) => {
+      handleError(err)
+      setError("ログインに失敗しました。メールアドレスとパスワードを確認してください。")
+    },
   })
-  localStorage.setItem("access_token", response.access_token)
+
+  // Google認証URLを取得する関数
+  const getGoogleAuthUrl = async () => {
+    try {
+      return await fetchGoogleAuthUrl()
+    } catch (err) {
+      handleError(err as ApiError)
+      setError("Google認証の準備に失敗しました。")
+      return null
+    }
+  }
+
+  // Google認証コードでログインする関数
+  const loginWithGoogleCode = async (code: string) => {
+    try {
+      const response = await googleLogin(code)
+      localStorage.setItem("access_token", response.access_token)
+      navigate({ to: "/" })
+      return true
+    } catch (err) {
+      handleError(err as ApiError)
+      setError("Googleログインに失敗しました。")
+      return false
+    }
+  }
     onSuccess: () => {
       navigate({ to: "/" })
     },
@@ -70,6 +113,9 @@ const useAuth = () => {
     user,
     error,
     resetError: () => setError(null),
+    getGoogleAuthUrl,
+    loginWithGoogleCode,
+
   }
 }
 
