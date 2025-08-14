@@ -1,8 +1,13 @@
 from datetime import timedelta
 from typing import Annotated, Any
+from typing import Dict
+import requests
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi import Request
 from fastapi.responses import HTMLResponse
+from fastapi.responses import RedirectResponse
+
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app import crud
@@ -44,6 +49,82 @@ def login_access_token(
 
 
 @router.post("/login/test-token", response_model=UserPublic)
+@router.get("/login/google")
+def login_google():
+    """
+    Google OAuth2認証URLを生成
+    """
+    if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
+        raise HTTPException(status_code=500, detail="Google OAuth not configured")
+    
+    auth_url = (
+        "https://accounts.google.com/o/oauth2/auth"
+        f"?client_id={settings.GOOGLE_CLIENT_ID}"
+        "&response_type=code"
+        f"&redirect_uri={settings.GOOGLE_REDIRECT_URI}"
+        "&scope=email%20profile"
+    )
+    return {"auth_url": auth_url}
+
+
+@router.post("/login/google/callback")
+def login_google_callback(code: str, session: SessionDep):
+    """
+    Google OAuth2コールバック処理
+    """
+    if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
+        raise HTTPException(status_code=500, detail="Google OAuth not configured")
+    
+    # Googleトークンエンドポイントにリクエスト
+    token_url = "https://oauth2.googleapis.com/token"
+    data = {
+        "code": code,
+        "client_id": settings.GOOGLE_CLIENT_ID,
+        "client_secret": settings.GOOGLE_CLIENT_SECRET,
+        "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+        "grant_type": "authorization_code",
+    }
+    
+    response = requests.post(token_url, data=data)
+    if not response.ok:
+        raise HTTPException(status_code=400, detail="Failed to validate Google token")
+    
+    token_data = response.json()
+    
+    # ユーザー情報を取得
+    user_info_url = "https://www.googleapis.com/oauth2/v2/userinfo"
+    headers = {"Authorization": f"Bearer {token_data['access_token']}"}
+    user_info_response = requests.get(user_info_url, headers=headers)
+    
+    if not user_info_response.ok:
+        raise HTTPException(status_code=400, detail="Failed to get user info from Google")
+    
+    user_info = user_info_response.json()
+    email = user_info.get("email")
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="Email not provided by Google")
+    
+    # ユーザーが存在するか確認、なければ作成
+    user = crud.get_user_by_email(session=session, email=email)
+    if not user:
+        user = crud.create_user(
+            session=session,
+            email=email,
+            password=security.get_password_hash(security.generate_random_password()),
+            is_active=True,
+        )
+    
+    # アクセストークン生成
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = security.create_access_token(
+        user.id, expires_delta=access_token_expires
+    )
+    
+    return {"access_token": access_token}
+
+
+
 def test_token(current_user: CurrentUser) -> Any:
     """
     Test access token

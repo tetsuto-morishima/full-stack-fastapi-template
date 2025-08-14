@@ -1,7 +1,14 @@
+    """
+    安全なランダムパスワードを生成する
+    """
+    alphabet = string.ascii_letters + string.digits + string.punctuation
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Union
+import secrets
+import string
 
-import jwt
+from jose import jwt
 import requests
 from passlib.context import CryptContext
 
@@ -14,7 +21,12 @@ ALGORITHM = "HS256"
 
 
 def create_access_token(subject: str | Any, expires_delta: timedelta) -> str:
-    expire = datetime.now(timezone.utc) + expires_delta
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(
+            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+        )
     to_encode = {"exp": expire, "sub": str(subject)}
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
